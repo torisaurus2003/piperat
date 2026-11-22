@@ -1,0 +1,10 @@
+width=170
+height=1
+spacing=0
+title=piperat
+set_as_layer=true
+namespace=piperat
+x_pos=628
+y_pos=325
+volume_step=0.05
+set_tooltip=true
