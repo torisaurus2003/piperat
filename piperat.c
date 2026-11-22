@@ -70,7 +70,8 @@ typedef struct App {
 	GtkCssProvider *css;		//CSS provider
 	GFile *file;			//Style file object
 	GFileMonitor *monitor;		//Style file monitor
-	Config config;
+	Config config;			//App configuration
+	bool has_streams;		//Flag for streams
 } App;
 
 //GSource wrapping for PipeWire's loop
@@ -941,6 +942,10 @@ static void registry_global(void *_data, uint32_t id, uint32_t permissions, cons
 	//Checks if the interface is a node, if it has a media.class and if the media class is Stream/Output/Audio
 	if (strcmp(type, PW_TYPE_INTERFACE_Node) == 0 && media_class && strcmp(media_class, "Stream/Output/Audio") == 0) {
 		
+		/*if (!app->has_streams) {
+			app->has_streams = true;
+		}*/
+			
 		//Preallocates the stream object
 		Stream *stream = calloc(1, sizeof(Stream));
 
@@ -966,7 +971,11 @@ static void registry_global(void *_data, uint32_t id, uint32_t permissions, cons
 		app->streams = stream;
 
 	}
-		
+	
+	/*if (!app->has_streams) {
+		gtk_window_destroy(app->window);
+	}*/
+
 }
 
 //Cleanup
@@ -1067,18 +1076,58 @@ static void on_command_line(GApplication *application, GApplicationCommandLine *
 
 }
 
+//Checks if there are any streams
+bool has_streams(void) {
+
+	//Runs pw-dump and saves the output
+	FILE *output = popen("pw-dump", "r");
+
+	//If the output is invalid, return false
+	if (!output) {
+        	return FALSE;
+	}
+
+    	//Output line
+    	char line[4096];
+
+	//Flag to check if a stream was found
+	bool stream = FALSE;
+
+	//Iterate over the lines of the output and
+	//search for any containing Stream/Output/Audio
+	while (fgets(line, sizeof(line), output)) {
+
+		if (strstr(line, "Stream/Output/Audio")) {
+			stream = TRUE;
+			break;
+		}
+	
+	}
+	
+	//Close the output	
+	pclose(output);	
+	
+	//Return the stream status
+	return stream;
+
+}
+
 //Activates the app
 void activate(GtkApplication *application, gpointer user_data) {
 
 	//Assign arguments to app structure
 	App *app = user_data;
 	app->application = application;
+	
+	if (has_streams()) {
 
-	//Create window
-	create_window(app);
+		//Create window
+		create_window(app);
+	
+		//Present window
+		gtk_window_present(app->window);
 
-	//Present window
-	gtk_window_present(app->window);
+	}
 
 }
 
@@ -1098,6 +1147,7 @@ int main(int argc, char *argv[]) {
 	app.config.namespace = strdup("piperat");
 	app.config.volume_step = 0.05;
 	app.config.set_tooltip = true;
+	app.has_streams = false;
 
 	//Initializes the PipeWire library
 	pw_init(&argc, &argv);
