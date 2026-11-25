@@ -642,6 +642,9 @@ void create_window(App *app) {
 
 		//Set the window's namespace
 		gtk_layer_set_namespace(app->window, app->config.namespace);
+	
+		//Set the window as overlay	
+		gtk_layer_set_layer(app->window, GTK_LAYER_SHELL_LAYER_OVERLAY);
 
 		//Focus the keyboard on the window
 		gtk_layer_set_keyboard_mode(app->window, GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE);
